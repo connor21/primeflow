@@ -1,8 +1,8 @@
 <template>
   <div class="demo-app">
-    <header class="demo-header">
+<header class="demo-header">
       <h1>Primeflow Graph Editor Demo</h1>
-      <p>Phase 2 Implementation - Basic graph rendering and state management</p>
+      <p>Phase 3 Implementation - Interactive node dragging, edge creation, and multi-select</p>
     </header>
 
     <div class="demo-controls">

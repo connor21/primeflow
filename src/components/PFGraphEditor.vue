@@ -10,7 +10,7 @@
       </div>
     </div>
     
-    <PFGraphSVG
+<PFGraphSVG
       :nodes="state.graph.nodes"
       :edges="state.graph.edges"
       :width="width"
@@ -20,6 +20,9 @@
       @edge-click="handleEdgeClick"
       @port-click="handlePortClick"
       @canvas-click="handleCanvasClick"
+      @node-drag="handleNodeDrag"
+      @nodes-drag="handleNodesDrag"
+      @edge-create="handleEdgeCreate"
     />
     
     <div v-if="state.selectedNodes.length > 0" class="selection-info">
@@ -69,11 +72,10 @@ const {
   removeEdge,
   getEdge,
   selectNode,
-  deselectNode,
+deselectNode,
   selectEdge,
   deselectEdge,
   clearSelection,
-  clearGraph: clearGraphState,
   loadGraph,
   exportGraph
 } = usePFGraph(props.config)
@@ -94,7 +96,7 @@ function handleNodeClick(nodeId: string, event: MouseEvent): void {
 }
 
 function handleNodeMouseDown(nodeId: string, event: MouseEvent): void {
-  // This will be used for drag operations in Phase 3
+  // Node dragging is handled by the SVG component
   console.log('Node mouse down:', nodeId, event)
 }
 
@@ -113,7 +115,7 @@ function handleEdgeClick(edgeId: string, event: MouseEvent): void {
 }
 
 function handlePortClick(nodeId: string, portId: string, event: MouseEvent): void {
-  // This will be used for edge creation in Phase 3
+  // Port interactions are handled by the SVG component for edge creation
   console.log('Port clicked:', nodeId, portId, event)
 }
 
@@ -125,8 +127,46 @@ function handleCanvasClick(event: MouseEvent): void {
   }
 }
 
+// Phase 3 interactive event handlers
+function handleNodeDrag(nodeId: string, deltaX: number, deltaY: number): void {
+  const node = state.graph.nodes.find(n => n.id === nodeId)
+  if (node) {
+    node.x += deltaX
+    node.y += deltaY
+    emit('graph-updated')
+  }
+}
+
+function handleNodesDrag(nodeIds: string[], deltaX: number, deltaY: number): void {
+  nodeIds.forEach(nodeId => {
+    const node = state.graph.nodes.find(n => n.id === nodeId)
+    if (node) {
+      node.x += deltaX
+      node.y += deltaY
+    }
+  })
+  emit('graph-updated')
+}
+
+function handleEdgeCreate(fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string): void {
+  try {
+    addEdge({
+      sourceNodeId: fromNodeId,
+      sourcePortId: fromPortId,
+      targetNodeId: toNodeId,
+      targetPortId: toPortId,
+      selected: false
+    })
+    
+    emit('graph-updated')
+  } catch (error) {
+    console.error('Failed to create edge:', error)
+  }
+}
+
 function clearGraph(): void {
-  clearGraphState()
+  state.graph.nodes = []
+  state.graph.edges = []
   emit('graph-updated')
 }
 

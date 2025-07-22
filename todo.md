@@ -69,39 +69,43 @@
 
 ### Node Drag & Drop
 
-* [ ] Enable dragging nodes with mouse/touch on the canvas (single or multi-select)
+* [x] Enable dragging nodes with mouse/touch on the canvas (single or multi-select)
 
-  * **Acceptance:** Node(s) position updates while dragging
-  * **Acceptance:** No major lag or glitches
+  * **Acceptance:** Node(s) position updates while dragging ✅
+  * **Acceptance:** No major lag or glitches ✅
+  * **Note:** Implemented with smooth delta-based position updates and multi-select support
 
 ---
 
 ### Edge Creation
 
-* [ ] Allow user to connect output port to input port by drag/click (multiple ports per node)
+* [x] Allow user to connect output port to input port by drag/click (multiple ports per node)
 
-  * **Acceptance:** User can create edges between any output/input port
-  * **Acceptance:** Edge only connects output to input, not output to output or input to input
+  * **Acceptance:** User can create edges between any output/input port ✅
+  * **Acceptance:** Edge only connects output to input, not output to output or input to input ✅
+  * **Note:** Fixed edge persistence bug using mouseup event handlers; edges now remain after creation
 
 ---
 
 ### Node Selection (Single/Multi)
 
-* [ ] Select a node with click
-* [ ] Shift/Ctrl/Cmd+Click for multi-select
+* [x] Select a node with click
+* [x] Shift/Ctrl/Cmd+Click for multi-select
 
-  * **Acceptance:** Selected nodes are highlighted
-  * **Acceptance:** Multi-select can select/deselect multiple nodes
+  * **Acceptance:** Selected nodes are highlighted ✅
+  * **Acceptance:** Multi-select can select/deselect multiple nodes ✅
+  * **Note:** Visual highlighting with blue glow effect and proper state management
 
 ---
 
 ### Multi-select Actions
 
-* [ ] Move selected nodes as a group
+* [x] Move selected nodes as a group
 * [ ] Delete all selected nodes and their connected edges
 
-  * **Acceptance:** Multi-selected nodes move together
+  * **Acceptance:** Multi-selected nodes move together ✅
   * **Acceptance:** Deleting multi-select removes all related edges
+  * **Note:** Group movement implemented; deletion feature pending
 
 ---
 
