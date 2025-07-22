@@ -1,26 +1,11 @@
 <template>
   <div id="app">
-    <header>
-      <h1>Primeflow - Node Graph Editor</h1>
-      <p>Vue 3 + TypeScript + Vite Project Initialized Successfully</p>
-    </header>
-    <main>
-      <div class="status">
-        <h2>Project Status</h2>
-        <ul>
-          <li>✅ Vue 3 with Composition API</li>
-          <li>✅ TypeScript support</li>
-          <li>✅ Vite build tool</li>
-          <li>✅ ESLint & Prettier configured</li>
-          <li>✅ Vitest testing framework</li>
-        </ul>
-      </div>
-    </main>
+    <DemoApp />
   </div>
 </template>
 
 <script setup lang="ts">
-// This is a basic Vue 3 component using Composition API with TypeScript
+import DemoApp from './examples/DemoApp.vue'
 </script>
 
 <style scoped>
