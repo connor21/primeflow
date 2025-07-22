@@ -156,8 +156,8 @@ function onImageLoad() {
 .pf-inspector {
   width: 300px;
   height: 100%;
-  background: #f8f9fa;
-  border-left: 1px solid #dee2e6;
+  background: var(--inspector-bg);
+  border-left: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -165,21 +165,21 @@ function onImageLoad() {
 
 .inspector-header {
   padding: 16px;
-  border-bottom: 1px solid #dee2e6;
-  background: #ffffff;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
 }
 
 .inspector-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-primary);
 }
 
 .inspector-empty {
   padding: 24px 16px;
   text-align: center;
-  color: #6c757d;
+  color: var(--text-muted);
 }
 
 .inspector-content {
@@ -190,7 +190,7 @@ function onImageLoad() {
 .inspector-multi {
   padding: 24px 16px;
   text-align: center;
-  color: #6c757d;
+  color: var(--text-muted);
 }
 
 .multi-note {
@@ -201,20 +201,20 @@ function onImageLoad() {
 .node-info {
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .node-info h4 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #212529;
+  color: var(--text-primary);
 }
 
 .node-type {
   margin: 0;
   font-size: 14px;
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 .properties-section,
@@ -227,13 +227,13 @@ function onImageLoad() {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .no-properties {
-  color: #6c757d;
+  color: var(--text-muted);
   font-style: italic;
   font-size: 14px;
 }
@@ -247,22 +247,24 @@ function onImageLoad() {
   margin-bottom: 4px;
   font-size: 13px;
   font-weight: 500;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .property-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .property-input:focus {
   outline: none;
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
 }
 
 .property-checkbox {
@@ -279,6 +281,6 @@ function onImageLoad() {
   max-width: 100%;
   max-height: 120px;
   border-radius: 4px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-primary);
 }
 </style>

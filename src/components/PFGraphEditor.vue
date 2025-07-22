@@ -6,6 +6,45 @@
         Edges: {{ edgeCount }}/{{ config.maxEdges }}
       </div>
       <div class="actions">
+        <!-- Phase 5: Undo/Redo Controls -->
+        <div class="undo-redo-group">
+          <button 
+            @click="undo" 
+            :disabled="!canUndo" 
+            :title="canUndo ? `Undo: ${undoDescription}` : 'Nothing to undo'"
+            class="btn btn-secondary"
+          >
+            ↶ Undo
+          </button>
+          <button 
+            @click="redo" 
+            :disabled="!canRedo" 
+            :title="canRedo ? `Redo: ${redoDescription}` : 'Nothing to redo'"
+            class="btn btn-secondary"
+          >
+            ↷ Redo
+          </button>
+        </div>
+        
+        <!-- Phase 5: Import/Export Controls -->
+        <div class="import-export-group">
+          <button @click="exportGraphToJSON" class="btn btn-primary">Export JSON</button>
+          <button @click="triggerImport" class="btn btn-primary">Import JSON</button>
+          <input 
+            ref="fileInput" 
+            type="file" 
+            accept=".json" 
+            @change="importGraphFromJSON" 
+            style="display: none;"
+          />
+        </div>
+        
+        <!-- Phase 5: Theme Toggle -->
+        <button @click="toggleTheme" class="btn btn-theme">
+          {{ currentTheme === 'light' ? '🌙' : '☀️' }} 
+          {{ currentTheme === 'light' ? 'Dark' : 'Light' }}
+        </button>
+        
         <button @click="clearGraph" class="btn btn-danger">Clear Graph</button>
         <button 
           v-if="state.selectedNodes.length > 0" 
@@ -19,10 +58,11 @@
     
     <div class="editor-content">
       <PFGraphSVG
+        ref="svgRef"
+        :width="props.width"
+        :height="props.height"
         :nodes="state.graph.nodes"
         :edges="state.graph.edges"
-        :width="width"
-        :height="height"
         @node-click="handleNodeClick"
         @node-mousedown="handleNodeMouseDown"
         @edge-click="handleEdgeClick"
@@ -41,6 +81,19 @@
         :selected-nodes="selectedNodeObjects"
         @property-changed="handlePropertyChanged"
         @image-changed="handleImageChanged"
+      />
+      
+      <!-- Phase 5: Minimap -->
+      <PFMinimap
+        v-if="showMinimap"
+        :nodes="state.graph.nodes"
+        :edges="state.graph.edges"
+        :viewport="minimapViewport"
+        :graph-bounds="graphBounds"
+        :editor-width="width"
+        :editor-height="height"
+        @viewport-change="handleViewportChange"
+        @toggle="toggleMinimap"
       />
     </div>
     
@@ -62,11 +115,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import PFGraphSVG from './PFGraphSVG.vue'
 import PFInspector from './PFInspector.vue'
 import PFContextMenu from './PFContextMenu.vue'
-import { usePFGraph } from '../composables'
+import PFMinimap from './PFMinimap.vue'
+import { usePFGraph, useTheme } from '../composables'
 import type { PFGraphConfig } from '../types'
 
 interface Props {
@@ -115,7 +169,16 @@ const {
   updateNodeImage,
   duplicateNode,
   deleteSelectedNodes,
-  selectedNodeObjects
+  selectedNodeObjects,
+  // Phase 5: Undo/Redo functions
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  undoDescription,
+  redoDescription,
+  clearHistory,
+  getHistoryInfo
 } = usePFGraph(props.config)
 
 // Phase 4: Context menu state
@@ -123,6 +186,84 @@ const contextMenu = reactive({
   visible: false,
   position: { x: 0, y: 0 },
   nodeId: ''
+})
+
+// Phase 5: Minimap state
+const showMinimap = ref(true)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+// Phase 5: Theme functionality
+const { currentTheme, toggleTheme } = useTheme()
+
+// Reference to SVG component for accessing viewport
+const svgRef = ref<InstanceType<typeof PFGraphSVG> | null>(null)
+
+// Force reactive viewport tracking
+const currentViewport = ref({
+  x: 0,
+  y: 0,
+  width: props.width,
+  height: props.height
+})
+
+// Watch for viewport changes and update our reactive copy
+watch(
+  () => {
+    try {
+      return svgRef.value?.viewport
+    } catch (error) {
+      console.warn('Error accessing viewport:', error)
+      return null
+    }
+  },
+  (newViewport: any) => {
+    try {
+      if (newViewport && typeof newViewport === 'object') {
+        currentViewport.value = {
+          x: newViewport.x || 0,
+          y: newViewport.y || 0,
+          width: newViewport.width || props.width,
+          height: newViewport.height || props.height
+        }
+      }
+    } catch (error) {
+      console.warn('Error updating viewport:', error)
+    }
+  },
+  { deep: true, immediate: false, flush: 'post' }
+)
+
+// Computed properties for minimap
+const graphBounds = computed(() => {
+  if (state.graph.nodes.length === 0) {
+    return { minX: 0, minY: 0, maxX: props.width, maxY: props.height }
+  }
+  
+  const xs = state.graph.nodes.map(node => node.x)
+  const ys = state.graph.nodes.map(node => node.y)
+  const widths = state.graph.nodes.map(node => node.x + (node.width || 120))
+  const heights = state.graph.nodes.map(node => node.y + (node.height || 80))
+  
+  return {
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+    maxX: Math.max(...widths),
+    maxY: Math.max(...heights)
+  }
+})
+
+const minimapViewport = computed(() => {
+  // Use our reactive viewport copy and include scale from SVG viewport
+  const svgViewport = svgRef.value?.viewport
+  const result = {
+    x: currentViewport.value.x,
+    y: currentViewport.value.y,
+    width: currentViewport.value.width,
+    height: currentViewport.value.height,
+    scale: svgViewport?.scale || 1
+  }
+  // Minimap viewport computed successfully
+  return result
 })
 
 // Event handlers
@@ -265,6 +406,86 @@ function handleContextMenuClose(): void {
   contextMenu.nodeId = ''
 }
 
+// Phase 5: Minimap event handlers
+function handleViewportChange(viewport: { x: number; y: number }): void {
+  // Update the SVG viewport when minimap is dragged
+  if (svgRef.value?.viewport) {
+    svgRef.value.viewport.x = viewport.x
+    svgRef.value.viewport.y = viewport.y
+    console.log('Viewport updated from minimap:', viewport)
+  } else {
+    console.warn('SVG viewport not accessible for update')
+  }
+}
+
+function toggleMinimap(): void {
+  showMinimap.value = !showMinimap.value
+}
+
+// Phase 5: Import/Export functionality
+function exportGraphToJSON(): void {
+  try {
+    const graphData = exportGraph()
+    const jsonString = JSON.stringify(graphData, null, 2)
+    
+    // Create and trigger download
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `primeflow-graph-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    console.log('Graph exported successfully')
+  } catch (error) {
+    console.error('Failed to export graph:', error)
+    alert('Failed to export graph. Please try again.')
+  }
+}
+
+function triggerImport(): void {
+  fileInput.value?.click()
+}
+
+function importGraphFromJSON(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  
+  if (!file) return
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const jsonString = e.target?.result as string
+      const graphData = JSON.parse(jsonString)
+      
+      // Validate the imported data structure
+      if (!graphData.nodes || !graphData.edges || !graphData.config) {
+        throw new Error('Invalid graph data structure')
+      }
+      
+      // Load the graph and clear history to start fresh
+      loadGraph(graphData)
+      clearHistory()
+      
+      console.log('Graph imported successfully')
+      emit('graph-updated')
+      
+      // Clear the file input
+      input.value = ''
+    } catch (error) {
+      console.error('Failed to import graph:', error)
+      alert('Failed to import graph. Please check the file format and try again.')
+      input.value = ''
+    }
+  }
+  
+  reader.readAsText(file)
+}
+
 // Expose methods for external use
 defineExpose({
   addNode,
@@ -293,7 +514,7 @@ defineExpose({
 .pf-graph-editor {
   display: flex;
   flex-direction: column;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   overflow: hidden;
   height: 100%;
@@ -310,13 +531,13 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #ddd;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
   font-size: 12px;
 }
 
 .stats {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .actions {
@@ -326,32 +547,34 @@ defineExpose({
 
 .btn {
   padding: 4px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-primary);
   border-radius: 3px;
-  background-color: #fff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 11px;
 }
 
 .btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-tertiary);
 }
 
 .btn-danger {
-  background-color: #f44336;
+  background-color: var(--danger);
   color: white;
-  border-color: #d32f2f;
+  border-color: var(--danger);
 }
 
-.btn-danger:hover {
-  background-color: #d32f2f;
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--danger);
+  opacity: 0.8;
 }
 
 .selection-info {
   padding: 4px 12px;
-  background-color: #e3f2fd;
-  border-top: 1px solid #ddd;
+  background-color: var(--bg-tertiary);
+  border-top: 1px solid var(--border-primary);
   font-size: 11px;
-  color: #1976d2;
+  color: var(--accent-primary);
 }
 </style>

@@ -15,11 +15,14 @@
   <svg
     :width="width"
     :height="height"
+    :viewBox="`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`"
     class="pf-graph-svg"
     @click="handleCanvasClick"
-    @mousemove="handleMouseMove"
-    @mouseup="handleMouseUp"
+    @mousemove="handleMouseMoveWithPanning"
+    @mouseup="handleMouseUpWithPanning"
     @mouseleave="handleMouseLeave"
+    @wheel="handleWheel"
+    @mousedown="handleCanvasMouseDown"
   >
     <!-- Grid background (optional) -->
     <defs>
@@ -32,19 +35,27 @@
         <path
           d="M 20 0 L 0 0 0 20"
           fill="none"
-          stroke="#e5e5e5"
-          stroke-width="1"
+          stroke="#d0d0d0"
+          stroke-width="0.5"
+          opacity="0.6"
         />
       </pattern>
     </defs>
-    <rect width="100%" height="100%" fill="url(#grid)" />
+    <!-- Extended grid background that covers the entire viewport area -->
+    <rect 
+      :x="viewport.x - viewport.width" 
+      :y="viewport.y - viewport.height" 
+      :width="viewport.width * 3" 
+      :height="viewport.height * 3" 
+      fill="url(#grid)" 
+      pointer-events="none"
+    />
 
     <!-- Temporary edge being created -->
     <path
       v-if="edgeCreation.active"
       :d="getTemporaryEdgePath()"
       class="edge temporary-edge"
-      stroke="#2196F3"
       stroke-width="2"
       stroke-dasharray="5,5"
       fill="none"
@@ -58,7 +69,6 @@
         :key="edge.id"
         :d="getEdgePath(edge)"
         :class="['edge', { selected: edge.selected }]"
-        stroke="#666"
         stroke-width="2"
         fill="none"
         @click.stop="handleEdgeClick(edge.id, $event)"
@@ -81,9 +91,6 @@
           :width="node.width || 120"
           :height="node.height || 80"
           :class="['node-rect', { selected: node.selected }]"
-          fill="#f9f9f9"
-          stroke="#ccc"
-          stroke-width="1"
           rx="4"
         />
 
@@ -92,10 +99,10 @@
           :x="(node.width || 120) / 2"
           y="20"
           text-anchor="middle"
-          class="node-title"
           font-family="Arial, sans-serif"
           font-size="12"
-          fill="#333"
+          font-weight="bold"
+          fill="var(--text-primary)"
         >
           {{ node.title }}
         </text>
@@ -221,6 +228,19 @@ const edgeCreation = reactive({
   fromPortType: '' as 'input' | 'output',
   currentPos: { x: 0, y: 0 }
 })
+
+// Phase 5: Pan/Zoom state
+const viewport = reactive({
+  x: 0,
+  y: 0,
+  width: props.width,
+  height: props.height,
+  scale: 1
+})
+
+const isPanning = ref(false)
+const panStartPos = ref({ x: 0, y: 0 })
+const panStartViewport = ref({ x: 0, y: 0 })
 
 // Helper functions
 function getInputPorts(node: PFNode): PFPort[] {
@@ -499,12 +519,98 @@ function handleImageLoad(nodeId: string): void {
   console.log(`Image loaded successfully for node ${nodeId}`)
   emit('image-load', nodeId)
 }
+
+// Phase 5: Pan/Zoom event handlers
+function handleWheel(event: WheelEvent): void {
+  event.preventDefault()
+  
+  const zoomFactor = 1.1
+  const rect = (event.currentTarget as SVGElement).getBoundingClientRect()
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+  
+  // Convert mouse position to world coordinates
+  const worldX = viewport.x + (mouseX / props.width) * viewport.width
+  const worldY = viewport.y + (mouseY / props.height) * viewport.height
+  
+  if (event.deltaY < 0) {
+    // Zoom in
+    viewport.width /= zoomFactor
+    viewport.height /= zoomFactor
+    viewport.scale *= zoomFactor
+  } else {
+    // Zoom out
+    viewport.width *= zoomFactor
+    viewport.height *= zoomFactor
+    viewport.scale /= zoomFactor
+  }
+  
+  // Adjust viewport position to keep mouse position centered
+  viewport.x = worldX - (mouseX / props.width) * viewport.width
+  viewport.y = worldY - (mouseY / props.height) * viewport.height
+  
+  console.log('SVG viewport updated after zoom:', {
+    x: viewport.x,
+    y: viewport.y,
+    width: viewport.width,
+    height: viewport.height,
+    scale: viewport.scale
+  })
+}
+
+function handleCanvasMouseDown(event: MouseEvent): void {
+  // Only start panning if clicking on empty canvas (not on nodes or edges)
+  if (event.target === event.currentTarget) {
+    isPanning.value = true
+    panStartPos.value = { x: event.clientX, y: event.clientY }
+    panStartViewport.value = { x: viewport.x, y: viewport.y }
+    event.preventDefault()
+  }
+}
+
+// Update existing handleMouseMove to include panning
+function handleMouseMoveWithPanning(event: MouseEvent): void {
+  if (isPanning.value) {
+    const deltaX = event.clientX - panStartPos.value.x
+    const deltaY = event.clientY - panStartPos.value.y
+    
+    // Convert screen delta to world delta
+    const worldDeltaX = (deltaX / props.width) * viewport.width
+    const worldDeltaY = (deltaY / props.height) * viewport.height
+    
+    viewport.x = panStartViewport.value.x - worldDeltaX
+    viewport.y = panStartViewport.value.y - worldDeltaY
+    
+    console.log('SVG viewport updated after pan:', {
+      x: viewport.x,
+      y: viewport.y,
+      width: viewport.width,
+      height: viewport.height
+    })
+    return
+  }
+  
+  // Call existing mouse move logic
+  handleMouseMove(event)
+}
+
+// Update existing handleMouseUp to include panning
+function handleMouseUpWithPanning(): void {
+  isPanning.value = false
+  handleMouseUp()
+}
+
+// Expose viewport state for parent components (like minimap)
+defineExpose({
+  viewport
+})
+
 </script>
 
 <style scoped>
 .pf-graph-svg {
-  border: 1px solid #ddd;
-  background-color: #fafafa;
+  border: 1px solid var(--border-primary);
+  background-color: var(--bg-primary);
   cursor: default;
 }
 
@@ -513,11 +619,14 @@ function handleImageLoad(nodeId: string): void {
 }
 
 .node-rect {
+  fill: var(--node-bg);
+  stroke: var(--node-border);
+  stroke-width: 1;
   transition: stroke 0.2s ease;
 }
 
 .node-rect.selected {
-  stroke: #2196F3;
+  stroke: var(--selection-color);
   stroke-width: 2;
 }
 
@@ -532,30 +641,32 @@ function handleImageLoad(nodeId: string): void {
 
 .port:hover circle {
   stroke-width: 2;
-  stroke: #000;
+  stroke: var(--text-primary);
 }
 
 .edge {
+  stroke: var(--edge-color);
   cursor: pointer;
   transition: stroke 0.2s ease;
 }
 
 .edge:hover {
-  stroke: #333;
+  stroke: var(--text-secondary);
   stroke-width: 3;
 }
 
 .edge.selected {
-  stroke: #2196F3;
+  stroke: var(--selection-color);
   stroke-width: 3;
 }
 
 .temporary-edge {
+  stroke: var(--selection-color);
   pointer-events: none;
   opacity: 0.8;
 }
 
 .node.selected {
-  filter: drop-shadow(0 0 4px rgba(33, 150, 243, 0.5));
+  filter: drop-shadow(0 0 4px rgba(74, 144, 226, 0.5));
 }
 </style>

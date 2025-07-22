@@ -1,5 +1,6 @@
 import { reactive, computed } from 'vue'
 import type { PFGraph, PFNode, PFEdge, PFGraphConfig, PFGraphState } from '../types'
+import { usePFHistory } from './usePFHistory'
 
 const DEFAULT_CONFIG: PFGraphConfig = {
   maxNodes: 100,
@@ -12,6 +13,7 @@ const DEFAULT_CONFIG: PFGraphConfig = {
 
 export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
   const config = reactive({ ...DEFAULT_CONFIG, ...initialConfig })
+  const history = usePFHistory()
   
   const state = reactive<PFGraphState>({
     graph: {
@@ -45,22 +47,34 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
       return null
     }
 
+    const beforeState = exportGraph()
+    
     const id = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const newNode: PFNode = {
       ...node,
       id,
-      width: node.width || config.nodeDefaults!.width,
-      height: node.height || config.nodeDefaults!.height,
-      selected: false
+      selected: false,
+      // Ensure ports have unique IDs
+      ports: node.ports.map(port => ({
+        ...port,
+        id: port.id || `port_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }))
     }
-
+    
     state.graph.nodes.push(newNode)
+    
+    const afterState = exportGraph()
+    history.recordAction('add_node', beforeState, afterState, `Add node "${newNode.title}"`);
+    
     return id
   }
 
-  function removeNode(nodeId: string): void {
+  function removeNode(nodeId: string): boolean {
     const nodeIndex = state.graph.nodes.findIndex(n => n.id === nodeId)
-    if (nodeIndex === -1) return
+    if (nodeIndex === -1) return false
+
+    const beforeState = exportGraph()
+    const nodeTitle = state.graph.nodes[nodeIndex].title
 
     // Remove all edges connected to this node
     state.graph.edges = state.graph.edges.filter(
@@ -70,18 +84,29 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     // Remove the node
     state.graph.nodes.splice(nodeIndex, 1)
 
-    // Remove from selection
-    const selectedIndex = state.selectedNodes.indexOf(nodeId)
-    if (selectedIndex !== -1) {
-      state.selectedNodes.splice(selectedIndex, 1)
-    }
+    // Remove from selection if selected
+    deselectNode(nodeId)
+    
+    const afterState = exportGraph()
+    history.recordAction('remove_node', beforeState, afterState, `Remove node "${nodeTitle}"`);
+    
+    return true
   }
 
-  function updateNode(nodeId: string, updates: Partial<PFNode>): void {
-    const node = state.graph.nodes.find(n => n.id === nodeId)
-    if (node) {
-      Object.assign(node, updates)
+  function updateNode(nodeId: string, updates: Partial<Omit<PFNode, 'id'>>): boolean {
+    const node = getNode(nodeId)
+    if (!node) return false
+
+    const beforeState = exportGraph()
+    Object.assign(node, updates)
+    const afterState = exportGraph()
+    
+    // Only record history for position changes (moves), not selection changes
+    if (updates.x !== undefined || updates.y !== undefined) {
+      history.recordAction('move_node', beforeState, afterState, `Move node "${node.title}"`);
     }
+    
+    return true
   }
 
   function getNode(nodeId: string): PFNode | undefined {
@@ -131,6 +156,8 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
       return null
     }
 
+    const beforeState = exportGraph()
+    
     const id = `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const newEdge: PFEdge = {
       ...edge,
@@ -139,6 +166,10 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
 
     state.graph.edges.push(newEdge)
+    
+    const afterState = exportGraph()
+    history.recordAction('add_edge', beforeState, afterState, `Add edge from "${sourceNode.title}" to "${targetNode.title}"`);
+    
     return id
   }
 
@@ -146,8 +177,16 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     const edgeIndex = state.graph.edges.findIndex(e => e.id === edgeId)
     if (edgeIndex === -1) return
 
-    state.graph.edges.splice(edgeIndex, 1)
+    const beforeState = exportGraph()
+    const edge = state.graph.edges[edgeIndex]
+    const sourceNode = getNode(edge.sourceNodeId)
+    const targetNode = getNode(edge.targetNodeId)
 
+    state.graph.edges.splice(edgeIndex, 1)
+    
+    const afterState = exportGraph()
+    history.recordAction('remove_edge', beforeState, afterState, `Remove edge from "${sourceNode?.title || 'unknown'}" to "${targetNode?.title || 'unknown'}"`);
+    
     // Remove from selection
     const selectedIndex = state.selectedEdges.indexOf(edgeId)
     if (selectedIndex !== -1) {
@@ -255,11 +294,17 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     const node = getNode(nodeId)
     if (!node) return false
     
+    const beforeState = exportGraph()
+    
     if (!node.properties) {
       node.properties = {}
     }
     
     node.properties[propertyKey] = value
+    
+    const afterState = exportGraph()
+    history.recordAction('update_property', beforeState, afterState, `Update property "${propertyKey}" of node "${node.title}"`);
+    
     return true
   }
 
@@ -267,7 +312,12 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     const node = getNode(nodeId)
     if (!node) return false
     
+    const beforeState = exportGraph()
     node.image = imageUrl
+    const afterState = exportGraph()
+    
+    history.recordAction('update_property', beforeState, afterState, `Update image of node "${node.title}"`);
+    
     return true
   }
 
@@ -284,11 +334,23 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
       ports: originalNode.ports.map(port => ({ ...port, id: `${port.id}_copy_${Date.now()}` }))
     }
     
-    return addNode(duplicatedNode)
+    const newNodeId = addNode(duplicatedNode)
+    
+    // Override the automatic history recording from addNode with a more specific description
+    if (newNodeId && history.state.undoStack.length > 0) {
+      const lastAction = history.state.undoStack[history.state.undoStack.length - 1]
+      lastAction.description = `Duplicate node "${originalNode.title}"`
+      lastAction.type = 'duplicate_node'
+    }
+    
+    return newNodeId
   }
 
   function deleteSelectedNodes(): void {
-    const selectedNodeIds = state.selectedNodes
+    const selectedNodeIds = [...state.selectedNodes] // Copy array to avoid mutation issues
+    if (selectedNodeIds.length === 0) return
+    
+    const beforeState = exportGraph()
     
     // Remove all edges connected to selected nodes
     state.graph.edges = state.graph.edges.filter(edge => 
@@ -296,10 +358,38 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
       !selectedNodeIds.includes(edge.targetNodeId)
     )
     
-    // Remove selected nodes
-    selectedNodeIds.forEach(nodeId => removeNode(nodeId))
+    // Remove selected nodes (without individual history recording)
+    selectedNodeIds.forEach(nodeId => {
+      const nodeIndex = state.graph.nodes.findIndex(n => n.id === nodeId)
+      if (nodeIndex !== -1) {
+        state.graph.nodes.splice(nodeIndex, 1)
+      }
+    })
     
     clearSelection()
+    
+    const afterState = exportGraph()
+    const nodeCount = selectedNodeIds.length
+    history.recordAction('delete_selected', beforeState, afterState, `Delete ${nodeCount} selected node${nodeCount > 1 ? 's' : ''}`);
+  }
+
+  // Undo/Redo operations
+  function undo(): boolean {
+    const action = history.undo()
+    if (!action) return false
+    
+    // Apply the before state
+    loadGraph(action.beforeState)
+    return true
+  }
+
+  function redo(): boolean {
+    const action = history.redo()
+    if (!action) return false
+    
+    // Apply the after state
+    loadGraph(action.afterState)
+    return true
   }
 
   return {
@@ -341,6 +431,16 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     updateNodeProperty,
     updateNodeImage,
     duplicateNode,
-    deleteSelectedNodes
+    deleteSelectedNodes,
+    
+    // Phase 5: Undo/Redo operations
+    undo,
+    redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    undoDescription: history.undoDescription,
+    redoDescription: history.redoDescription,
+    clearHistory: history.clearHistory,
+    getHistoryInfo: history.getHistoryInfo
   }
 }

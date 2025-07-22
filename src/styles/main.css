@@ -4,15 +4,70 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Phase 5: Theme System */
+/* Dark theme (default) */
+:root {
+  --bg-primary: #242424;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #333333;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --border-primary: #444444;
+  --border-secondary: #666666;
+  --accent-primary: #4a90e2;
+  --accent-secondary: #2171b5;
+  --success: #28a745;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --grid-color: #404040;
+  --node-bg: #666666;
+  --node-border: #444444;
+  --edge-color: #888888;
+  --selection-color: #4a90e2;
+  --minimap-bg: rgba(0, 0, 0, 0.8);
+  --minimap-border: #444444;
+  --inspector-bg: rgba(0, 0, 0, 0.9);
+  --context-menu-bg: rgba(30, 30, 30, 0.95);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #213547;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --border-primary: #dee2e6;
+  --border-secondary: #adb5bd;
+  --accent-primary: #0056b3;
+  --accent-secondary: #004085;
+  --success: #198754;
+  --warning: #fd7e14;
+  --danger: #dc3545;
+  --grid-color: #e8e8e8;
+  --node-bg: #ffffff;
+  --node-border: #dee2e6;
+  --edge-color: #495057;
+  --selection-color: #0056b3;
+  --minimap-bg: rgba(255, 255, 255, 0.9);
+  --minimap-border: #dee2e6;
+  --inspector-bg: rgba(255, 255, 255, 0.95);
+  --context-menu-bg: rgba(255, 255, 255, 0.95);
+}
+
+/* Apply theme variables */
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 }
 
 * {
@@ -31,9 +86,119 @@ body {
   width: 100%;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
+/* Remove old media query - now handled by theme system */
+
+/* Phase 5: Undo/Redo Button Styles */
+.undo-redo-group {
+  display: flex;
+  gap: 4px;
+  margin-right: 12px;
+}
+
+.undo-redo-group .btn {
+  min-width: 80px;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #666;
+  color: #999;
+}
+
+.btn:disabled:hover {
+  background-color: #666;
+  transform: none;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: 1px solid #6c757d;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+  border-color: #545b62;
+  transform: translateY(-1px);
+}
+
+/* Phase 5: Import/Export Button Styles */
+.import-export-group {
+  display: flex;
+  gap: 4px;
+  margin-right: 12px;
+}
+
+.import-export-group .btn {
+  min-width: 100px;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+  border-color: #004085;
+  transform: translateY(-1px);
+}
+
+/* Phase 5: Theme Toggle Button */
+.btn-theme {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-theme:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Demo App Header Styles */
+.demo-header {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  padding: 20px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-text h1 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.header-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.header-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }

@@ -1,8 +1,19 @@
 <template>
   <div class="demo-app">
-<header class="demo-header">
-      <h1>Primeflow Graph Editor Demo</h1>
-      <p>Phase 4 Implementation - Inspector panel, context menu, property editing, and image support</p>
+    <header class="demo-header">
+      <div class="header-content">
+        <div class="header-text">
+          <h1>Primeflow Graph Editor Demo</h1>
+          <p>Phase 5 Implementation - Undo/Redo, Minimap, Import/Export, Theming, Pan/Zoom</p>
+        </div>
+        <div class="header-controls">
+          <!-- Phase 5: Theme Toggle -->
+          <button @click="toggleTheme" class="btn btn-theme">
+            {{ currentTheme === 'light' ? '🌙' : '☀️' }} 
+            {{ currentTheme === 'light' ? 'Dark' : 'Light' }} Mode
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="demo-controls">
@@ -85,6 +96,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { PFGraphEditor } from '../components'
+import { useTheme } from '../composables'
 import type { PFGraph, PFNode, PFEdge, PFGraphConfig } from '../types'
 
 // Reactive state
@@ -94,6 +106,9 @@ const selectedEdges = ref<string[]>([])
 const exportedGraph = ref<PFGraph | null>(null)
 const maxNodes = ref(10)
 const maxEdges = ref(20)
+
+// Phase 5: Theme functionality
+const { currentTheme, toggleTheme } = useTheme()
 
 // Graph configuration
 const graphConfig = ref<PFGraphConfig>({
@@ -392,12 +407,12 @@ onMounted(() => {
 }
 
 .demo-header h1 {
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .demo-header p {
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -407,13 +422,14 @@ onMounted(() => {
   gap: 20px;
   margin-bottom: 30px;
   padding: 20px;
-  background-color: #f9f9f9;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
 }
 
 .control-group h3 {
   margin: 0 0 12px 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -425,16 +441,17 @@ onMounted(() => {
 
 .btn {
   padding: 8px 16px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
+  background-color: var(--bg-tertiary);
 }
 
 .btn:disabled {
@@ -443,23 +460,23 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background-color: #2196F3;
+  background-color: var(--accent-primary);
   color: white;
-  border-color: #1976D2;
+  border-color: var(--accent-secondary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1976D2;
+  background-color: var(--accent-secondary);
 }
 
 .btn-secondary {
-  background-color: #757575;
+  background-color: var(--text-secondary);
   color: white;
-  border-color: #616161;
+  border-color: var(--text-secondary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #616161;
+  background-color: var(--text-primary);
 }
 
 label {
@@ -467,18 +484,21 @@ label {
   align-items: center;
   gap: 8px;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 input[type="number"] {
   width: 80px;
   padding: 4px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-primary);
   border-radius: 3px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .info-text {
   font-size: 14px;
-  color: #555;
+  color: var(--text-secondary);
   padding: 4px 0;
 }
 
