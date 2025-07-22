@@ -7,22 +7,52 @@
       </div>
       <div class="actions">
         <button @click="clearGraph" class="btn btn-danger">Clear Graph</button>
+        <button 
+          v-if="state.selectedNodes.length > 0" 
+          @click="deleteSelectedNodes" 
+          class="btn btn-danger"
+        >
+          Delete Selected ({{ state.selectedNodes.length }})
+        </button>
       </div>
     </div>
     
-<PFGraphSVG
-      :nodes="state.graph.nodes"
-      :edges="state.graph.edges"
-      :width="width"
-      :height="height"
-      @node-click="handleNodeClick"
-      @node-mousedown="handleNodeMouseDown"
-      @edge-click="handleEdgeClick"
-      @port-click="handlePortClick"
-      @canvas-click="handleCanvasClick"
-      @node-drag="handleNodeDrag"
-      @nodes-drag="handleNodesDrag"
-      @edge-create="handleEdgeCreate"
+    <div class="editor-content">
+      <PFGraphSVG
+        :nodes="state.graph.nodes"
+        :edges="state.graph.edges"
+        :width="width"
+        :height="height"
+        @node-click="handleNodeClick"
+        @node-mousedown="handleNodeMouseDown"
+        @edge-click="handleEdgeClick"
+        @port-click="handlePortClick"
+        @canvas-click="handleCanvasClick"
+        @node-drag="handleNodeDrag"
+        @nodes-drag="handleNodesDrag"
+        @edge-create="handleEdgeCreate"
+        @node-right-click="handleNodeRightClick"
+        @image-error="handleImageError"
+        @image-load="handleImageLoad"
+      />
+      
+      <!-- Phase 4: Inspector Panel -->
+      <PFInspector
+        :selected-nodes="selectedNodeObjects"
+        @property-changed="handlePropertyChanged"
+        @image-changed="handleImageChanged"
+      />
+    </div>
+    
+    <!-- Phase 4: Context Menu -->
+    <PFContextMenu
+      :visible="contextMenu.visible"
+      :position="contextMenu.position"
+      :node-id="contextMenu.nodeId"
+      @delete-node="handleDeleteNode"
+      @duplicate-node="handleDuplicateNode"
+      @edit-properties="handleEditProperties"
+      @close="handleContextMenuClose"
     />
     
     <div v-if="state.selectedNodes.length > 0" class="selection-info">
@@ -32,8 +62,10 @@
 </template>
 
 <script setup lang="ts">
-
+import { reactive } from 'vue'
 import PFGraphSVG from './PFGraphSVG.vue'
+import PFInspector from './PFInspector.vue'
+import PFContextMenu from './PFContextMenu.vue'
 import { usePFGraph } from '../composables'
 import type { PFGraphConfig } from '../types'
 
@@ -72,13 +104,26 @@ const {
   removeEdge,
   getEdge,
   selectNode,
-deselectNode,
+  deselectNode,
   selectEdge,
   deselectEdge,
   clearSelection,
   loadGraph,
-  exportGraph
+  exportGraph,
+  // Phase 4: New functions
+  updateNodeProperty,
+  updateNodeImage,
+  duplicateNode,
+  deleteSelectedNodes,
+  selectedNodeObjects
 } = usePFGraph(props.config)
+
+// Phase 4: Context menu state
+const contextMenu = reactive({
+  visible: false,
+  position: { x: 0, y: 0 },
+  nodeId: ''
+})
 
 // Event handlers
 function handleNodeClick(nodeId: string, event: MouseEvent): void {
@@ -170,6 +215,56 @@ function clearGraph(): void {
   emit('graph-updated')
 }
 
+// Phase 4: New event handlers
+function handleNodeRightClick(nodeId: string, event: MouseEvent): void {
+  event.preventDefault()
+  contextMenu.visible = true
+  contextMenu.position = { x: event.clientX, y: event.clientY }
+  contextMenu.nodeId = nodeId
+}
+
+function handleImageError(nodeId: string): void {
+  console.warn(`Image failed to load for node: ${nodeId}`)
+}
+
+function handleImageLoad(nodeId: string): void {
+  console.log(`Image loaded successfully for node: ${nodeId}`)
+}
+
+function handlePropertyChanged(nodeId: string, propertyKey: string, value: any): void {
+  updateNodeProperty(nodeId, propertyKey, value)
+  emit('graph-updated')
+}
+
+function handleImageChanged(nodeId: string, imageUrl: string): void {
+  updateNodeImage(nodeId, imageUrl)
+  emit('graph-updated')
+}
+
+function handleDeleteNode(nodeId: string): void {
+  removeNode(nodeId)
+  emit('graph-updated')
+}
+
+function handleDuplicateNode(nodeId: string): void {
+  const newNodeId = duplicateNode(nodeId)
+  if (newNodeId) {
+    emit('graph-updated')
+  }
+}
+
+function handleEditProperties(nodeId: string): void {
+  // Select the node to show it in the inspector
+  clearSelection()
+  selectNode(nodeId)
+  emit('node-selected', [nodeId])
+}
+
+function handleContextMenuClose(): void {
+  contextMenu.visible = false
+  contextMenu.nodeId = ''
+}
+
 // Expose methods for external use
 defineExpose({
   addNode,
@@ -200,6 +295,13 @@ defineExpose({
   flex-direction: column;
   border: 1px solid #ddd;
   border-radius: 4px;
+  overflow: hidden;
+  height: 100%;
+}
+
+.editor-content {
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 

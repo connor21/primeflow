@@ -72,8 +72,9 @@
         :key="node.id"
         :transform="`translate(${node.x}, ${node.y})`"
         :class="['node', { selected: node.selected }]"
-@mousedown="handleNodeMouseDown(node.id, $event)"
+        @mousedown="handleNodeMouseDown(node.id, $event)"
         @click.stop="handleNodeClick(node.id, $event)"
+        @contextmenu.prevent="handleNodeRightClick(node.id, $event)"
       >
         <!-- Node rectangle -->
         <rect
@@ -99,17 +100,24 @@
           {{ node.title }}
         </text>
 
-        <!-- Node image placeholder -->
-        <rect
-          v-if="!node.image"
-          :x="((node.width || 120) - 32) / 2"
-          y="30"
-          width="32"
-          height="32"
-          fill="#ddd"
-          stroke="#bbb"
-          rx="2"
-        />
+        <!-- Node image or 3D box placeholder -->
+        <g v-if="!node.image || !isValidImageUrl(node.image)" class="node-placeholder">
+          <!-- 3D Box Placeholder -->
+          <g :transform="`translate(${((node.width || 120) - 32) / 2}, 30)`">
+            <!-- Back face -->
+            <rect x="4" y="4" width="24" height="24" fill="#e0e0e0" stroke="#bbb" rx="2"/>
+            <!-- Front face -->
+            <rect x="0" y="0" width="24" height="24" fill="#f5f5f5" stroke="#999" rx="2"/>
+            <!-- Top face -->
+            <polygon points="0,0 4,4 28,4 24,0" fill="#eeeeee" stroke="#aaa"/>
+            <!-- Right face -->
+            <polygon points="24,0 28,4 28,28 24,24" fill="#d5d5d5" stroke="#aaa"/>
+            <!-- Icon in center -->
+            <circle cx="12" cy="12" r="3" fill="#999"/>
+            <rect x="10" y="8" width="4" height="2" fill="#fff" rx="1"/>
+            <rect x="10" y="14" width="4" height="2" fill="#fff" rx="1"/>
+          </g>
+        </g>
         <image
           v-else
           :href="node.image"
@@ -117,6 +125,8 @@
           y="30"
           width="32"
           height="32"
+          @error="handleImageError(node.id)"
+          @load="handleImageLoad(node.id)"
         />
 
         <!-- Input ports -->
@@ -185,6 +195,10 @@ interface Emits {
   (e: 'node-drag', nodeId: string, deltaX: number, deltaY: number): void
   (e: 'nodes-drag', nodeIds: string[], deltaX: number, deltaY: number): void
   (e: 'edge-create', fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string): void
+  // Phase 4: New events
+  (e: 'node-right-click', nodeId: string, event: MouseEvent): void
+  (e: 'image-error', nodeId: string): void
+  (e: 'image-load', nodeId: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -457,6 +471,33 @@ function handleCanvasClick(event: MouseEvent): void {
   }
   
   emit('canvas-click', event)
+}
+
+// Phase 4: Context menu and image handling
+function handleNodeRightClick(nodeId: string, event: MouseEvent): void {
+  emit('node-right-click', nodeId, event)
+}
+
+function isValidImageUrl(url: string): boolean {
+  if (!url || url.trim() === '') return false
+  
+  // Basic URL validation
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function handleImageError(nodeId: string): void {
+  console.warn(`Failed to load image for node ${nodeId}`)
+  emit('image-error', nodeId)
+}
+
+function handleImageLoad(nodeId: string): void {
+  console.log(`Image loaded successfully for node ${nodeId}`)
+  emit('image-load', nodeId)
 }
 </script>
 

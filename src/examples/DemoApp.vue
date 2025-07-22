@@ -2,7 +2,7 @@
   <div class="demo-app">
 <header class="demo-header">
       <h1>Primeflow Graph Editor Demo</h1>
-      <p>Phase 3 Implementation - Interactive node dragging, edge creation, and multi-select</p>
+      <p>Phase 4 Implementation - Inspector panel, context menu, property editing, and image support</p>
     </header>
 
     <div class="demo-controls">

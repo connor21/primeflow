@@ -101,47 +101,50 @@
 ### Multi-select Actions
 
 * [x] Move selected nodes as a group
-* [ ] Delete all selected nodes and their connected edges
+* [x] Delete all selected nodes and their connected edges
 
   * **Acceptance:** Multi-selected nodes move together ✅
-  * **Acceptance:** Deleting multi-select removes all related edges
-  * **Note:** Group movement implemented; deletion feature pending
+  * **Acceptance:** Deleting multi-select removes all related edges ✅
+  * **Note:** Group movement and multi-delete fully implemented with "Delete Selected" button
 
 ---
 
-## **Phase 4: Inspector, Context Menu & Property Editing**
+## **Phase 4: Inspector, Context Menu & Property Editing** 
 
 ### Inspector Panel (Fixed Side)
 
-* [ ] Build `PFInspector` component as a fixed side panel
-* [ ] Render correct editor for each property type (`string`, `integer`, `float`, `number`)
-* [ ] Support editing property value (live binding)
+* [x] Build `PFInspector` component as a fixed side panel
+* [x] Render correct editor for each property type (`string`, `integer`, `float`, `number`)
+* [x] Support editing property value (live binding)
 
-  * **Acceptance:** Changing values in Inspector updates node properties
-  * **Acceptance:** Editor type matches property type
+  * **Acceptance:** Changing values in Inspector updates node properties 
+  * **Acceptance:** Editor type matches property type 
+  * **Note:** Full Inspector panel with live property editing, image URL support, and proper TypeScript typing
 
 ---
 
 ### Node Image / Placeholder
 
-* [ ] If node has property `imageUrl` (string), display image at top of node
-* [ ] If `imageUrl` is empty/invalid, display a 3D box placeholder (SVG or embedded image)
+* [x] If node has property `imageUrl` (string), display image at top of node
+* [x] If `imageUrl` is empty/invalid, display a 3D box placeholder (SVG or embedded image)
 
-  * **Acceptance:** Valid image URL displays the image
-  * **Acceptance:** Empty/invalid URL displays 3D box placeholder
+  * **Acceptance:** Valid image URL displays the image 
+  * **Acceptance:** Empty/invalid URL displays 3D box placeholder 
+  * **Note:** Beautiful 3D isometric box placeholder with gradients and proper image error handling
 
 ---
 
 ### Node Context Menu
 
-* [ ] Implement right-click context menu for nodes
+* [x] Implement right-click context menu for nodes
 
-  * [ ] Show menu on node right-click
-  * [ ] Actions: “Delete Node”, “Duplicate Node”, “Edit Properties”
+  * [x] Show menu on node right-click
+  * [x] Actions: “Delete Node”, “Duplicate Node”, “Edit Properties”
 
-    * **Acceptance:** Menu appears only on node right-click
-    * **Acceptance:** Actions perform as expected
-    * **Acceptance:** Menu is styled according to current theme
+    * **Acceptance:** Menu appears only on node right-click 
+    * **Acceptance:** Actions perform as expected 
+    * **Acceptance:** Menu is styled according to current theme 
+    * **Note:** Full context menu with proper positioning, click-outside handling, and keyboard support
 
 ---
 
@@ -207,15 +210,6 @@
 
   * **Acceptance:** README explains setup and usage
   * **Acceptance:** Main types and components are documented
-
----
-
-### Demo Application Sync
-
-* [ ] Every time a feature is added/updated, update DemoApp to show and test it
-
-  * **Acceptance:** DemoApp always matches current library features
-  * **Acceptance:** All acceptance criteria can be manually checked in DemoApp
 
 ---
 

@@ -30,6 +30,13 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
   const edgeCount = computed(() => state.graph.edges.length)
   const canAddNode = computed(() => nodeCount.value < config.maxNodes!)
   const canAddEdge = computed(() => edgeCount.value < config.maxEdges!)
+  
+  // Phase 4: Computed property for selected node objects
+  const selectedNodeObjects = computed(() => 
+    state.selectedNodes.map(nodeId => 
+      state.graph.nodes.find(node => node.id === nodeId)
+    ).filter(node => node !== undefined) as PFNode[]
+  )
 
   // Node operations
   function addNode(node: Omit<PFNode, 'id'>): string | null {
@@ -223,26 +230,76 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     state.selectedEdges.length = 0
   }
 
-  // Utility functions
+  // Utility operations
   function clearGraph(): void {
-    state.graph.nodes.length = 0
-    state.graph.edges.length = 0
+    state.graph.nodes = []
+    state.graph.edges = []
     clearSelection()
   }
 
   function loadGraph(graph: PFGraph): void {
-    clearGraph()
-    state.graph.nodes.push(...graph.nodes)
-    state.graph.edges.push(...graph.edges)
-    Object.assign(config, graph.config)
+    state.graph = { ...graph, config }
+    clearSelection()
   }
 
   function exportGraph(): PFGraph {
     return {
-      nodes: [...state.graph.nodes],
-      edges: [...state.graph.edges],
-      config: { ...config }
+      nodes: state.graph.nodes.map(node => ({ ...node, selected: false })),
+      edges: state.graph.edges.map(edge => ({ ...edge, selected: false })),
+      config
     }
+  }
+
+  // Phase 4: Property and image operations
+  function updateNodeProperty(nodeId: string, propertyKey: string, value: any): boolean {
+    const node = getNode(nodeId)
+    if (!node) return false
+    
+    if (!node.properties) {
+      node.properties = {}
+    }
+    
+    node.properties[propertyKey] = value
+    return true
+  }
+
+  function updateNodeImage(nodeId: string, imageUrl: string): boolean {
+    const node = getNode(nodeId)
+    if (!node) return false
+    
+    node.image = imageUrl
+    return true
+  }
+
+  function duplicateNode(nodeId: string): string | null {
+    const originalNode = getNode(nodeId)
+    if (!originalNode) return null
+    
+    const duplicatedNode = {
+      ...originalNode,
+      title: `${originalNode.title} (Copy)`,
+      x: originalNode.x + 20,
+      y: originalNode.y + 20,
+      properties: originalNode.properties ? { ...originalNode.properties } : undefined,
+      ports: originalNode.ports.map(port => ({ ...port, id: `${port.id}_copy_${Date.now()}` }))
+    }
+    
+    return addNode(duplicatedNode)
+  }
+
+  function deleteSelectedNodes(): void {
+    const selectedNodeIds = state.selectedNodes
+    
+    // Remove all edges connected to selected nodes
+    state.graph.edges = state.graph.edges.filter(edge => 
+      !selectedNodeIds.includes(edge.sourceNodeId) && 
+      !selectedNodeIds.includes(edge.targetNodeId)
+    )
+    
+    // Remove selected nodes
+    selectedNodeIds.forEach(nodeId => removeNode(nodeId))
+    
+    clearSelection()
   }
 
   return {
@@ -255,6 +312,7 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     edgeCount,
     canAddNode,
     canAddEdge,
+    selectedNodeObjects,
     
     // Node operations
     addNode,
@@ -277,6 +335,12 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     // Utility operations
     clearGraph,
     loadGraph,
-    exportGraph
+    exportGraph,
+    
+    // Phase 4: Property and image operations
+    updateNodeProperty,
+    updateNodeImage,
+    duplicateNode,
+    deleteSelectedNodes
   }
 }
