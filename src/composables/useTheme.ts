@@ -1,9 +1,34 @@
 import { ref, watch } from 'vue'
 
+/** Available theme options for the application */
 export type Theme = 'light' | 'dark'
 
+/** Local storage key for persisting theme preference */
 const THEME_STORAGE_KEY = 'primeflow-theme'
 
+/**
+ * Composable for managing application theme (light/dark mode)
+ * 
+ * Provides theme switching functionality with automatic persistence to localStorage
+ * and DOM attribute management. The theme is applied by setting/removing the
+ * `data-theme="light"` attribute on the document element.
+ * 
+ * @returns Object containing current theme state and control functions
+ * 
+ * @example
+ * ```typescript
+ * const { currentTheme, toggleTheme, setTheme } = useTheme()
+ * 
+ * // Toggle between light and dark
+ * toggleTheme()
+ * 
+ * // Set specific theme
+ * setTheme('light')
+ * 
+ * // Check current theme
+ * console.log(currentTheme.value) // 'light' or 'dark'
+ * ```
+ */
 export function useTheme() {
   // Initialize theme from localStorage or default to dark
   const getInitialTheme = (): Theme => {

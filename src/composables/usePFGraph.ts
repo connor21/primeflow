@@ -2,6 +2,12 @@ import { reactive, computed } from 'vue'
 import type { PFGraph, PFNode, PFEdge, PFGraphConfig, PFGraphState } from '../types'
 import { usePFHistory } from './usePFHistory'
 
+/**
+ * Default configuration values for new graphs
+ * 
+ * These values provide sensible defaults for graph behavior and node dimensions
+ * when no custom configuration is provided.
+ */
 const DEFAULT_CONFIG: PFGraphConfig = {
   maxNodes: 100,
   maxEdges: 200,
@@ -11,6 +17,33 @@ const DEFAULT_CONFIG: PFGraphConfig = {
   }
 }
 
+/**
+ * Main composable for managing graph state and operations
+ * 
+ * This composable provides a complete API for creating and managing a Primeflow graph,
+ * including nodes, edges, selection state, and history tracking. It handles all CRUD
+ * operations with proper validation and maintains reactive state for UI components.
+ * 
+ * @param initialConfig - Optional partial configuration to override defaults
+ * @returns Object containing reactive state and all graph manipulation functions
+ * 
+ * @example
+ * ```typescript
+ * const { state, addNode, addEdge, selectNode } = usePFGraph({
+ *   maxNodes: 50,
+ *   maxEdges: 100
+ * })
+ * 
+ * // Add a new node
+ * const nodeId = addNode({
+ *   type: 'filter',
+ *   title: 'Blur Filter',
+ *   x: 100,
+ *   y: 200,
+ *   ports: [{ id: 'input', name: 'Input', type: 'input', dataType: 'image' }]
+ * })
+ * ```
+ */
 export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
   const config = reactive({ ...DEFAULT_CONFIG, ...initialConfig })
   const history = usePFHistory()
@@ -41,6 +74,26 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
   )
 
   // Node operations
+  /**
+   * Adds a new node to the graph with automatic ID generation
+   * 
+   * Creates a new node with a unique ID and adds it to the graph if the maximum
+   * node limit has not been reached. Also ensures all ports have unique IDs.
+   * 
+   * @param node - Node data without ID (ID will be auto-generated)
+   * @returns The generated node ID if successful, null if max nodes reached
+   * 
+   * @example
+   * ```typescript
+   * const nodeId = addNode({
+   *   type: 'filter',
+   *   title: 'Blur Filter',
+   *   x: 100,
+   *   y: 200,
+   *   ports: [{ name: 'Input', type: 'input', dataType: 'image' }]
+   * })
+   * ```
+   */
   function addNode(node: Omit<PFNode, 'id'>): string | null {
     if (!canAddNode.value) {
       console.warn(`Cannot add node: maximum of ${config.maxNodes} nodes reached`)
@@ -69,6 +122,15 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     return id
   }
 
+  /**
+   * Removes a node from the graph and all its connected edges
+   * 
+   * Deletes the specified node and automatically removes all edges that were
+   * connected to any of its ports. Also removes the node from selection if selected.
+   * 
+   * @param nodeId - Unique identifier of the node to remove
+   * @returns true if node was found and removed, false if node not found
+   */
   function removeNode(nodeId: string): boolean {
     const nodeIndex = state.graph.nodes.findIndex(n => n.id === nodeId)
     if (nodeIndex === -1) return false
@@ -93,6 +155,17 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     return true
   }
 
+  /**
+   * Updates properties of an existing node
+   * 
+   * Applies the provided updates to the specified node. Records history for
+   * position changes but not for selection state changes to avoid cluttering
+   * the undo stack with selection operations.
+   * 
+   * @param nodeId - Unique identifier of the node to update
+   * @param updates - Partial node data to merge with existing node
+   * @returns true if node was found and updated, false if node not found
+   */
   function updateNode(nodeId: string, updates: Partial<Omit<PFNode, 'id'>>): boolean {
     const node = getNode(nodeId)
     if (!node) return false
@@ -109,11 +182,37 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     return true
   }
 
+  /**
+   * Retrieves a node by its unique identifier
+   * 
+   * @param nodeId - Unique identifier of the node to find
+   * @returns The node object if found, undefined otherwise
+   */
   function getNode(nodeId: string): PFNode | undefined {
     return state.graph.nodes.find(n => n.id === nodeId)
   }
 
   // Edge operations
+  /**
+   * Adds a new edge connecting two ports on different nodes
+   * 
+   * Creates a connection between an output port and an input port with full validation.
+   * Ensures the edge limit hasn't been reached, both nodes exist, both ports exist,
+   * and the connection is valid (output to input only).
+   * 
+   * @param edge - Edge data without ID (ID will be auto-generated)
+   * @returns The generated edge ID if successful, null if validation fails or max edges reached
+   * 
+   * @example
+   * ```typescript
+   * const edgeId = addEdge({
+   *   sourceNodeId: 'node1',
+   *   sourcePortId: 'output1',
+   *   targetNodeId: 'node2',
+   *   targetPortId: 'input1'
+   * })
+   * ```
+   */
   function addEdge(edge: Omit<PFEdge, 'id'>): string | null {
     if (!canAddEdge.value) {
       console.warn(`Cannot add edge: maximum of ${config.maxEdges} edges reached`)
@@ -173,6 +272,14 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     return id
   }
 
+  /**
+   * Removes an edge from the graph
+   * 
+   * Deletes the specified edge and removes it from selection if it was selected.
+   * Records the action in history for undo/redo functionality.
+   * 
+   * @param edgeId - Unique identifier of the edge to remove
+   */
   function removeEdge(edgeId: string): void {
     const edgeIndex = state.graph.edges.findIndex(e => e.id === edgeId)
     if (edgeIndex === -1) return
@@ -194,11 +301,27 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
   }
 
+  /**
+   * Retrieves an edge by its unique identifier
+   * 
+   * @param edgeId - Unique identifier of the edge to find
+   * @returns The edge object if found, undefined otherwise
+   */
   function getEdge(edgeId: string): PFEdge | undefined {
     return state.graph.edges.find(e => e.id === edgeId)
   }
 
   // Selection operations
+  /**
+   * Selects a node, optionally preserving existing selection
+   * 
+   * Adds the specified node to the selection. If multiSelect is false,
+   * clears all existing selections first. Updates both the selection array
+   * and the node's selected property.
+   * 
+   * @param nodeId - Unique identifier of the node to select
+   * @param multiSelect - Whether to preserve existing selections (default: false)
+   */
   function selectNode(nodeId: string, multiSelect = false): void {
     if (!multiSelect) {
       clearSelection()
@@ -213,6 +336,11 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
   }
 
+  /**
+   * Removes a node from the current selection
+   * 
+   * @param nodeId - Unique identifier of the node to deselect
+   */
   function deselectNode(nodeId: string): void {
     const index = state.selectedNodes.indexOf(nodeId)
     if (index !== -1) {
@@ -224,6 +352,12 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
   }
 
+  /**
+   * Selects an edge, optionally preserving existing selection
+   * 
+   * @param edgeId - Unique identifier of the edge to select
+   * @param multiSelect - Whether to preserve existing selections (default: false)
+   */
   function selectEdge(edgeId: string, multiSelect = false): void {
     if (!multiSelect) {
       clearSelection()
@@ -238,6 +372,11 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
   }
 
+  /**
+   * Removes an edge from the current selection
+   * 
+   * @param edgeId - Unique identifier of the edge to deselect
+   */
   function deselectEdge(edgeId: string): void {
     const index = state.selectedEdges.indexOf(edgeId)
     if (index !== -1) {
@@ -249,6 +388,11 @@ export function usePFGraph(initialConfig?: Partial<PFGraphConfig>) {
     }
   }
 
+  /**
+   * Clears all selections (both nodes and edges)
+   * 
+   * Removes all items from selection and updates their selected properties.
+   */
   function clearSelection(): void {
     // Clear node selections
     state.selectedNodes.forEach(nodeId => {

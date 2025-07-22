@@ -1,25 +1,69 @@
 import { reactive, computed } from 'vue'
 import type { PFGraph } from '../types'
 
+/**
+ * Represents a single action that can be undone or redone
+ * 
+ * Each action captures the complete graph state before and after the operation,
+ * allowing for perfect state restoration during undo/redo operations.
+ */
 export interface PFHistoryAction {
+  /** Unique identifier for this action */
   id: string
+  /** Type of operation that was performed */
   type: 'add_node' | 'remove_node' | 'add_edge' | 'remove_edge' | 'move_node' | 'update_property' | 'duplicate_node' | 'delete_selected'
+  /** Timestamp when the action was recorded */
   timestamp: number
+  /** Complete graph state before the action */
   beforeState: PFGraph
+  /** Complete graph state after the action */
   afterState: PFGraph
+  /** Human-readable description of the action */
   description: string
 }
 
+/**
+ * Internal state for the history management system
+ */
 export interface PFHistoryState {
+  /** Stack of actions that can be undone */
   undoStack: PFHistoryAction[]
+  /** Stack of actions that can be redone */
   redoStack: PFHistoryAction[]
+  /** Maximum number of actions to keep in each stack */
   maxStackSize: number
+  /** Whether an undo operation is currently in progress */
   isUndoing: boolean
+  /** Whether a redo operation is currently in progress */
   isRedoing: boolean
 }
 
+/** Default maximum number of actions to keep in history stacks */
 const DEFAULT_MAX_STACK_SIZE = 20
 
+/**
+ * Composable for managing undo/redo functionality in the graph editor
+ * 
+ * Provides a complete history system with configurable stack size and
+ * support for all graph operations. Actions are automatically managed
+ * with deep cloning to ensure state integrity.
+ * 
+ * @param maxStackSize - Maximum number of actions to keep (default: 20)
+ * @returns Object containing history state and control functions
+ * 
+ * @example
+ * ```typescript
+ * const history = usePFHistory(50) // Keep up to 50 actions
+ * 
+ * // Record an action
+ * history.recordAction('add_node', beforeState, afterState, 'Add Filter Node')
+ * 
+ * // Undo/redo
+ * if (history.canUndo.value) {
+ *   const restoredState = history.undo()
+ * }
+ * ```
+ */
 export function usePFHistory(maxStackSize: number = DEFAULT_MAX_STACK_SIZE) {
   const state = reactive<PFHistoryState>({
     undoStack: [],
