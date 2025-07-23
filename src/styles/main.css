@@ -30,6 +30,8 @@
   --grid-color: #404040;
   --node-bg: #666666;
   --node-border: #444444;
+  --node-header-bg: #2d5a3d;
+  --node-body-bg: #4a7c59;
   --edge-color: #888888;
   --selection-color: #4a90e2;
   --minimap-bg: rgba(0, 0, 0, 0.8);
@@ -56,6 +58,8 @@
   --grid-color: #e8e8e8;
   --node-bg: #ffffff;
   --node-border: #dee2e6;
+  --node-header-bg: #f8f9fa;
+  --node-body-bg: #ffffff;
   --edge-color: #495057;
   --selection-color: #0056b3;
   --minimap-bg: rgba(255, 255, 255, 0.9);
@@ -169,6 +173,29 @@ body {
   background-color: var(--accent-primary);
   color: white;
   transform: translateY(-1px);
+}
+
+/* Phase 7: Node Header and Body Styles */
+.node-header {
+  fill: var(--node-header-bg);
+  stroke: var(--node-border);
+  stroke-width: 1;
+}
+
+.node-body {
+  fill: var(--node-body-bg);
+  stroke: var(--node-border);
+  stroke-width: 1;
+}
+
+.node-header.selected {
+  stroke: var(--selection-color);
+  stroke-width: 2;
+}
+
+.node-body.selected {
+  stroke: var(--selection-color);
+  stroke-width: 2;
 }
 
 /* Demo App Header Styles */

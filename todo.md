@@ -229,3 +229,51 @@
 * **Multi-select:** Supports group move and delete
 * **Pan/Zoom:** Mouse and touch gestures supported
 * **Node context menu:** Delete, duplicate, edit properties
+
+--
+
+# Phase 7: Improving graph editor ✅
+
+### Enhanced Grid Background
+* [x] create groups of 10x10 squares with a darker line in the background grid (image required)
+  * **Acceptance:** Background shows a regular grid pattern with fine lines
+  * **Acceptance:** Every 10th line (both horizontal and vertical) is visibly darker/thicker than regular grid lines
+  * **Acceptance:** Grid spacing is consistent and provides good visual reference for node positioning
+  * **Acceptance:** Grid adapts to zoom levels appropriately
+  * **Acceptance:** Grid lines are subtle enough not to interfere with node/edge visibility
+  * **Note:** Implemented dual-layer grid system with fine lines every 10px and major lines every 100px (reduced from 20px/200px for 50% tighter spacing)
+
+### Node Header Enhancement
+* [x] add a header with a title to nodes and put the image in the upper left corner of the node (image required)
+  * **Acceptance:** Each node displays a distinct header section at the top
+  * **Acceptance:** Node title text is prominently displayed in the header
+  * **Acceptance:** Node image (or 3D box placeholder) is positioned in the upper left corner of the header
+  * **Acceptance:** Header has sufficient height to accommodate both title and image
+  * **Acceptance:** Text is readable and properly aligned within the header
+  * **Acceptance:** Image maintains aspect ratio and fits within the designated space
+  * **Acceptance:** Header visually separates from the node body content
+  * **Note:** Restructured node rendering with 28px header section, 20x20px images in upper left, and proper visual separation from body
+
+### Named Port Labels
+* [x] name the input and output ports in a node (image required)
+  * **Acceptance:** Input ports display descriptive labels (e.g., "SOURCE", "URL", "DESTINATION")
+  * **Acceptance:** Output ports display descriptive labels (e.g., "OUT")
+  * **Acceptance:** Port labels are positioned clearly near their respective connection points
+  * **Acceptance:** Labels are readable at normal zoom levels
+  * **Acceptance:** Labels don't overlap with port connection areas
+  * **Acceptance:** Input port labels are distinguishable from output port labels
+  * **Acceptance:** Multi-port nodes (like ConcatStreams with IMG, TXT, DOC, PDF inputs) show all port names clearly
+  * **Note:** Added 9px font labels positioned next to port circles - input labels on right, output labels on left with proper text anchoring
+
+### Dark Mode Color Scheme
+* [x] use dark green for node headers and a lighter green for node bodies in dark mode (image required)
+  * **Acceptance:** Node headers use a dark green color (#2d5a3d or similar) in dark mode
+  * **Acceptance:** Node bodies use a lighter green color (#4a7c59 or similar) in dark mode
+  * **Acceptance:** Color contrast between header and body is sufficient for clear visual separation
+  * **Acceptance:** Text remains readable on both dark and light green backgrounds
+  * **Acceptance:** Selected nodes maintain visibility with the green color scheme
+  * **Acceptance:** Port connection points are clearly visible against the green backgrounds
+  * **Acceptance:** Color scheme is consistent across all node types
+  * **Acceptance:** Light mode retains existing color scheme or uses appropriate light theme colors
+  * **Note:** Implemented CSS custom properties for node-header-bg (#2d5a3d dark, #f8f9fa light) and node-body-bg (#4a7c59 dark, #ffffff light) with proper selection highlighting
+

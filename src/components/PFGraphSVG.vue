@@ -24,20 +24,36 @@
     @wheel="handleWheel"
     @mousedown="handleCanvasMouseDown"
   >
-    <!-- Grid background (optional) -->
+    <!-- Enhanced Grid background with darker lines every 10 squares -->
     <defs>
+      <!-- Fine grid pattern (every square) -->
       <pattern
-        id="grid"
-        width="20"
-        height="20"
+        id="fine-grid"
+        width="10"
+        height="10"
         patternUnits="userSpaceOnUse"
       >
         <path
-          d="M 20 0 L 0 0 0 20"
+          d="M 10 0 L 0 0 0 10"
           fill="none"
-          stroke="#d0d0d0"
+          stroke="var(--grid-color)"
           stroke-width="0.5"
-          opacity="0.6"
+          opacity="0.3"
+        />
+      </pattern>
+      <!-- Major grid pattern (every 10 squares = 100px) -->
+      <pattern
+        id="major-grid"
+        width="100"
+        height="100"
+        patternUnits="userSpaceOnUse"
+      >
+        <path
+          d="M 100 0 L 0 0 0 100"
+          fill="none"
+          stroke="var(--grid-color)"
+          stroke-width="1.5"
+          opacity="0.8"
         />
       </pattern>
     </defs>
@@ -47,7 +63,16 @@
       :y="viewport.y - viewport.height" 
       :width="viewport.width * 3" 
       :height="viewport.height * 3" 
-      fill="url(#grid)" 
+      fill="url(#fine-grid)" 
+      pointer-events="none"
+    />
+    <!-- Major grid overlay -->
+    <rect 
+      :x="viewport.x - viewport.width" 
+      :y="viewport.y - viewport.height" 
+      :width="viewport.width * 3" 
+      :height="viewport.height * 3" 
+      fill="url(#major-grid)" 
       pointer-events="none"
     />
 
@@ -86,55 +111,71 @@
         @click.stop="handleNodeClick(node.id, $event)"
         @contextmenu.prevent="handleNodeRightClick(node.id, $event)"
       >
-        <!-- Node rectangle -->
+        <!-- Node body rectangle -->
         <rect
           :width="node.width || 120"
           :height="node.height || 80"
-          :class="['node-rect', { selected: node.selected }]"
+          :class="['node-body', { selected: node.selected }]"
           rx="4"
         />
 
-        <!-- Node title -->
-        <text
-          :x="(node.width || 120) / 2"
-          y="20"
-          text-anchor="middle"
-          font-family="Arial, sans-serif"
-          font-size="12"
-          font-weight="bold"
-          fill="var(--text-primary)"
-        >
-          {{ node.title }}
-        </text>
+        <!-- Node header rectangle -->
+        <rect
+          :width="node.width || 120"
+          height="28"
+          :class="['node-header', { selected: node.selected }]"
+          rx="4"
+        />
+        <!-- Header bottom border to separate from body -->
+        <rect
+          :width="node.width || 120"
+          y="24"
+          height="4"
+          :class="['node-header', { selected: node.selected }]"
+          rx="0"
+        />
 
-        <!-- Node image or 3D box placeholder -->
+        <!-- Node image or 3D box placeholder in header upper left -->
         <g v-if="!node.image || !isValidImageUrl(node.image)" class="node-placeholder">
           <!-- 3D Box Placeholder -->
-          <g :transform="`translate(${((node.width || 120) - 32) / 2}, 30)`">
+          <g transform="translate(4, 4)">
             <!-- Back face -->
-            <rect x="4" y="4" width="24" height="24" fill="#e0e0e0" stroke="#bbb" rx="2"/>
+            <rect x="2" y="2" width="16" height="16" fill="#e0e0e0" stroke="#bbb" rx="1"/>
             <!-- Front face -->
-            <rect x="0" y="0" width="24" height="24" fill="#f5f5f5" stroke="#999" rx="2"/>
+            <rect x="0" y="0" width="16" height="16" fill="#f5f5f5" stroke="#999" rx="1"/>
             <!-- Top face -->
-            <polygon points="0,0 4,4 28,4 24,0" fill="#eeeeee" stroke="#aaa"/>
+            <polygon points="0,0 2,2 18,2 16,0" fill="#eeeeee" stroke="#aaa"/>
             <!-- Right face -->
-            <polygon points="24,0 28,4 28,28 24,24" fill="#d5d5d5" stroke="#aaa"/>
+            <polygon points="16,0 18,2 18,18 16,16" fill="#d5d5d5" stroke="#aaa"/>
             <!-- Icon in center -->
-            <circle cx="12" cy="12" r="3" fill="#999"/>
-            <rect x="10" y="8" width="4" height="2" fill="#fff" rx="1"/>
-            <rect x="10" y="14" width="4" height="2" fill="#fff" rx="1"/>
+            <circle cx="8" cy="8" r="2" fill="#999"/>
+            <rect x="7" y="6" width="2" height="1" fill="#fff" rx="0.5"/>
+            <rect x="7" y="9" width="2" height="1" fill="#fff" rx="0.5"/>
           </g>
         </g>
         <image
           v-else
           :href="node.image"
-          :x="((node.width || 120) - 32) / 2"
-          y="30"
-          width="32"
-          height="32"
+          x="4"
+          y="4"
+          width="20"
+          height="20"
           @error="handleImageError(node.id)"
           @load="handleImageLoad(node.id)"
         />
+
+        <!-- Node title in header -->
+        <text
+          x="28"
+          y="17"
+          text-anchor="start"
+          font-family="Arial, sans-serif"
+          font-size="11"
+          font-weight="bold"
+          fill="var(--text-primary)"
+        >
+          {{ node.title }}
+        </text>
 
         <!-- Input ports -->
         <g class="input-ports">
@@ -142,8 +183,8 @@
             v-for="(port, index) in getInputPorts(node)"
             :key="port.id"
             :transform="`translate(${getPortPosition(port, index, getInputPorts(node).length, node, 'input').x}, ${getPortPosition(port, index, getInputPorts(node).length, node, 'input').y})`"
-class="port input-port"
-@click.stop="handlePortClick(node.id, port.id, $event)"
+            class="port input-port"
+            @click.stop="handlePortClick(node.id, port.id, $event)"
             @mousedown.stop="handlePortMouseDown(node.id, port.id, $event, 'input')"
             @mouseup.stop="handlePortMouseUp(node.id, port.id, $event, 'input')"
           >
@@ -153,6 +194,18 @@ class="port input-port"
               stroke="#333"
               stroke-width="1"
             />
+            <!-- Input port label -->
+            <text
+              x="8"
+              y="3"
+              font-family="Arial, sans-serif"
+              font-size="9"
+              font-weight="500"
+              fill="var(--text-primary)"
+              text-anchor="start"
+            >
+              {{ port.name }}
+            </text>
             <title>{{ port.name }} ({{ port.dataType }})</title>
           </g>
         </g>
@@ -163,8 +216,8 @@ class="port input-port"
             v-for="(port, index) in getOutputPorts(node)"
             :key="port.id"
             :transform="`translate(${getPortPosition(port, index, getOutputPorts(node).length, node, 'output').x}, ${getPortPosition(port, index, getOutputPorts(node).length, node, 'output').y})`"
-class="port output-port"
-@click.stop="handlePortClick(node.id, port.id, $event)"
+            class="port output-port"
+            @click.stop="handlePortClick(node.id, port.id, $event)"
             @mousedown.stop="handlePortMouseDown(node.id, port.id, $event, 'output')"
             @mouseup.stop="handlePortMouseUp(node.id, port.id, $event, 'output')"
           >
@@ -174,6 +227,18 @@ class="port output-port"
               stroke="#333"
               stroke-width="1"
             />
+            <!-- Output port label -->
+            <text
+              x="-8"
+              y="3"
+              font-family="Arial, sans-serif"
+              font-size="9"
+              font-weight="500"
+              fill="var(--text-primary)"
+              text-anchor="end"
+            >
+              {{ port.name }}
+            </text>
             <title>{{ port.name }} ({{ port.dataType }})</title>
           </g>
         </g>
