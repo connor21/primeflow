@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
 interface Props {
   visible: boolean
@@ -54,7 +54,7 @@ function onEditProperties() {
   emit('close')
 }
 
-function handleClickOutside(event: MouseEvent) {
+function handleClickOutside() {
   if (props.visible) {
     emit('close')
   }
