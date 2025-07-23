@@ -26,6 +26,16 @@
   >
     <!-- Enhanced Grid background with darker lines every 10 squares -->
     <defs>
+      <!-- Drop shadow filter for nodes -->
+      <filter id="node-drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow
+          dx="2"
+          dy="4"
+          stdDeviation="3"
+          flood-color="rgba(0, 0, 0, 0.3)"
+        />
+      </filter>
+      
       <!-- Fine grid pattern (every square) -->
       <pattern
         id="fine-grid"
@@ -107,6 +117,7 @@
         :key="node.id"
         :transform="`translate(${node.x}, ${node.y})`"
         :class="['node', { selected: node.selected }]"
+        filter="url(#node-drop-shadow)"
         @mousedown="handleNodeMouseDown(node.id, $event)"
         @click.stop="handleNodeClick(node.id, $event)"
         @contextmenu.prevent="handleNodeRightClick(node.id, $event)"
@@ -119,20 +130,10 @@
           rx="4"
         />
 
-        <!-- Node header rectangle -->
-        <rect
-          :width="node.width || 120"
-          height="28"
+        <!-- Node header with only top rounded corners -->
+        <path
+          :d="`M 4 0 L ${(node.width || 120) - 4} 0 Q ${node.width || 120} 0 ${node.width || 120} 4 L ${node.width || 120} 28 L 0 28 L 0 4 Q 0 0 4 0 Z`"
           :class="['node-header', { selected: node.selected }]"
-          rx="4"
-        />
-        <!-- Header bottom border to separate from body -->
-        <rect
-          :width="node.width || 120"
-          y="24"
-          height="4"
-          :class="['node-header', { selected: node.selected }]"
-          rx="0"
         />
 
         <!-- Node image or 3D box placeholder in header upper left -->
@@ -372,11 +373,13 @@ function getPortPosition(
 ): { x: number; y: number } {
   const nodeWidth = node.width || 120
   const nodeHeight = node.height || 80
-  const spacing = nodeHeight / (totalPorts + 1)
+  const headerHeight = 28 // Height of the node header
+  const availableHeight = nodeHeight - headerHeight
+  const spacing = availableHeight / (totalPorts + 1)
   
   return {
     x: side === 'input' ? 0 : nodeWidth,
-    y: spacing * (index + 1)
+    y: headerHeight + spacing * (index + 1)
   }
 }
 
