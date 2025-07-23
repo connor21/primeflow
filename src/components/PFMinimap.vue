@@ -100,7 +100,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'viewport-change', viewport: { x: number; y: number }): void
+  (e: 'viewport-change', viewport: { x: number; y: number; scale?: number }): void
   (e: 'toggle'): void
 }
 
@@ -134,10 +134,10 @@ const scaledViewport = computed(() => {
   const scaleY = minimapHeight.value / vb.height
   
   // Calculate the actual visible area dimensions in graph coordinates
-  // The viewport.width and viewport.height already represent the correct viewBox dimensions
-  // which correspond to the visible area in graph coordinates
-  const actualVisibleWidth = props.viewport.width
-  const actualVisibleHeight = props.viewport.height
+  // Account for the viewport scale factor to get the correct visible width/height
+  // A higher scale means we're zoomed in, so the visible area is smaller
+  const actualVisibleWidth = props.viewport.width / props.viewport.scale
+  const actualVisibleHeight = props.viewport.height / props.viewport.scale
   
   // Calculate scaled position and size
   const scaledX = (props.viewport.x - vb.x) * scaleX
@@ -146,7 +146,7 @@ const scaledViewport = computed(() => {
   const scaledHeight = actualVisibleHeight * scaleY
   
   // Debug: viewport rectangle calculation
-  // console.log('Minimap viewport rect:', scaledWidth, 'x', scaledHeight, 'at', scaledX, ',', scaledY)
+  console.log('Minimap viewport rect:', scaledWidth, 'x', scaledHeight, 'at', scaledX, ',', scaledY, 'scale:', props.viewport.scale)
   
   // Allow viewport to extend outside minimap bounds (don't clamp position)
   // Only clamp size to prevent viewport from being larger than minimap
@@ -207,11 +207,21 @@ function handleMinimapClick(event: MouseEvent): void {
   const graphX = viewBox.value.x + (x / props.width) * viewBox.value.width
   const graphY = viewBox.value.y + (y / minimapHeight.value) * viewBox.value.height
   
-  // Center the viewport on the clicked position
-  const newViewportX = graphX - props.viewport.width / 2
-  const newViewportY = graphY - props.viewport.height / 2
+  // Calculate the visible area size accounting for scale
+  // The viewport width/height in world coordinates is divided by scale
+  const visibleWidth = props.viewport.width / props.viewport.scale
+  const visibleHeight = props.viewport.height / props.viewport.scale
   
-  emit('viewport-change', { x: newViewportX, y: newViewportY })
+  // Center the viewport on the clicked position
+  const newViewportX = graphX - visibleWidth / 2
+  const newViewportY = graphY - visibleHeight / 2
+  
+  // Preserve scale when emitting viewport change
+  emit('viewport-change', { 
+    x: newViewportX, 
+    y: newViewportY,
+    scale: props.viewport.scale 
+  })
 }
 
 function handleMinimapMouseDown(event: MouseEvent): void {
@@ -281,11 +291,22 @@ function handleViewportMouseDown(event: MouseEvent): void {
     const scaleX = vb.width / props.width
     const scaleY = vb.height / minimapHeight.value
     
+    // Calculate the delta in world coordinates
+    // Need to account for viewport scale because the same pixel movement
+    // in the minimap represents different distances in the world at different zoom levels
     const newViewportX = startViewportX + (deltaX * scaleX)
     const newViewportY = startViewportY + (deltaY * scaleY)
     
-    console.log('Minimap emitting viewport-change:', { x: newViewportX, y: newViewportY })
-    emit('viewport-change', { x: newViewportX, y: newViewportY })
+    console.log('Minimap emitting viewport-change:', { 
+      x: newViewportX, 
+      y: newViewportY,
+      scale: props.viewport.scale 
+    })
+    emit('viewport-change', { 
+      x: newViewportX, 
+      y: newViewportY,
+      scale: props.viewport.scale 
+    })
   }
   
   function handleMouseUp(): void {

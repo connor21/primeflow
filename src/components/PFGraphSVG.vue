@@ -307,6 +307,53 @@ const isPanning = ref(false)
 const panStartPos = ref({ x: 0, y: 0 })
 const panStartViewport = ref({ x: 0, y: 0 })
 
+// Coordinate transformation helper functions
+// Convert screen coordinates (mouse position) to world coordinates (SVG/graph space)
+function screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
+  const svgElement = document.querySelector('.pf-graph-svg') as SVGElement
+  if (!svgElement) return { x: 0, y: 0 }
+  
+  const rect = svgElement.getBoundingClientRect()
+  
+  // Calculate the position within the SVG element
+  const svgX = screenX - rect.left
+  const svgY = screenY - rect.top
+  
+  // Convert to world coordinates using the current viewport
+  const worldX = viewport.x + (svgX / rect.width) * viewport.width
+  const worldY = viewport.y + (svgY / rect.height) * viewport.height
+  
+  return { x: worldX, y: worldY }
+}
+
+// Convert world coordinates (SVG/graph space) to screen coordinates
+// This function is defined for completeness and future use in additional features
+// that may require converting world coordinates back to screen coordinates
+// @ts-expect-error: Currently unused but kept for API completeness
+function worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
+  const svgElement = document.querySelector('.pf-graph-svg') as SVGElement
+  if (!svgElement) return { x: 0, y: 0 }
+  
+  const rect = svgElement.getBoundingClientRect()
+  
+  // Convert from world to screen coordinates using the current viewport
+  const svgX = ((worldX - viewport.x) / viewport.width) * rect.width
+  const svgY = ((worldY - viewport.y) / viewport.height) * rect.height
+  
+  return { x: svgX + rect.left, y: svgY + rect.top }
+}
+
+// Calculate mouse movement in world coordinates
+function getWorldMouseDelta(oldScreenX: number, oldScreenY: number, newScreenX: number, newScreenY: number): { x: number; y: number } {
+  const oldWorld = screenToWorld(oldScreenX, oldScreenY)
+  const newWorld = screenToWorld(newScreenX, newScreenY)
+  
+  return {
+    x: newWorld.x - oldWorld.x,
+    y: newWorld.y - oldWorld.y
+  }
+}
+
 // Helper functions
 function getInputPorts(node: PFNode): PFPort[] {
   return node.ports.filter(port => port.type === 'input')
@@ -424,27 +471,29 @@ function handleNodeMouseDown(nodeId: string, event: MouseEvent): void {
 
 function handleMouseMove(event: MouseEvent): void {
   if (isDragging.value && dragNodeIds.value.length > 0) {
-    // Handle node dragging
-    const deltaX = event.clientX - dragStartPos.value.x
-    const deltaY = event.clientY - dragStartPos.value.y
+    // Handle node dragging using world coordinate deltas
+    // This ensures proper dragging at all zoom levels
+    const worldDelta = getWorldMouseDelta(
+      dragStartPos.value.x, 
+      dragStartPos.value.y, 
+      event.clientX, 
+      event.clientY
+    )
     
     if (dragNodeIds.value.length === 1) {
-      emit('node-drag', dragNodeIds.value[0], deltaX, deltaY)
+      emit('node-drag', dragNodeIds.value[0], worldDelta.x, worldDelta.y)
     } else {
-      emit('nodes-drag', dragNodeIds.value, deltaX, deltaY)
+      emit('nodes-drag', dragNodeIds.value, worldDelta.x, worldDelta.y)
     }
     
     dragStartPos.value = { x: event.clientX, y: event.clientY }
   } else if (edgeCreation.active) {
-    // Handle edge creation preview
-    const rect = (event.target as Element).closest('svg')?.getBoundingClientRect()
-    if (rect) {
-      edgeCreation.currentPos = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
-      }
-    }
+    // Handle edge creation preview using world coordinates
+    // Convert mouse position to world coordinates for accurate preview
+    const worldPos = screenToWorld(event.clientX, event.clientY)
+    edgeCreation.currentPos = worldPos
   }
+
 }
 
 function handleMouseUp(): void {

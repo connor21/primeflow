@@ -178,6 +178,8 @@ const {
   undoDescription,
   redoDescription,
   clearHistory,
+  // Kept for potential future debugging and exposing history details in the UI
+  // @ts-expect-error: Currently unused but kept for API completeness
   getHistoryInfo
 } = usePFGraph(props.config)
 
@@ -407,11 +409,17 @@ function handleContextMenuClose(): void {
 }
 
 // Phase 5: Minimap event handlers
-function handleViewportChange(viewport: { x: number; y: number }): void {
+function handleViewportChange(viewport: { x: number; y: number; scale?: number }): void {
   // Update the SVG viewport when minimap is dragged
   if (svgRef.value?.viewport) {
     svgRef.value.viewport.x = viewport.x
     svgRef.value.viewport.y = viewport.y
+    
+    // Maintain scale if provided from the minimap
+    if (viewport.scale !== undefined) {
+      svgRef.value.viewport.scale = viewport.scale
+    }
+    
     console.log('Viewport updated from minimap:', viewport)
   } else {
     console.warn('SVG viewport not accessible for update')
