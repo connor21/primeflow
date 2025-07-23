@@ -34,6 +34,35 @@
       </div>
 
       <div class="control-group">
+        <h3>Test Node Creation</h3>
+        <div class="port-controls">
+          <div class="port-control">
+            <label>Input Ports:</label>
+            <input 
+              v-model.number="testNodeInputs" 
+              type="number" 
+              min="0" 
+              max="10"
+              class="port-input"
+            />
+          </div>
+          <div class="port-control">
+            <label>Output Ports:</label>
+            <input 
+              v-model.number="testNodeOutputs" 
+              type="number" 
+              min="0" 
+              max="10"
+              class="port-input"
+            />
+          </div>
+        </div>
+        <button @click="addTestNode" :disabled="!canAddNode" class="btn btn-primary">
+          Add Test Node ({{ testNodeInputs }}in/{{ testNodeOutputs }}out)
+        </button>
+      </div>
+
+      <div class="control-group">
         <h3>Configuration Test</h3>
         <label>
           Max Nodes: 
@@ -107,6 +136,10 @@ const exportedGraph = ref<PFGraph | null>(null)
 const maxNodes = ref(10)
 const maxEdges = ref(20)
 
+// Test node creation state
+const testNodeInputs = ref(2)
+const testNodeOutputs = ref(1)
+
 // Phase 5: Theme functionality
 const { currentTheme, toggleTheme } = useTheme()
 
@@ -166,6 +199,51 @@ function generateSampleNode(): Omit<PFNode, 'id'> {
     properties: {
       description: `Sample ${type} node`,
       version: '1.0.0'
+    }
+  }
+}
+
+// Generate test node with specified number of input and output ports
+function generateTestNode(inputCount: number, outputCount: number): Omit<PFNode, 'id'> {
+  const nodeNumber = nodes.value.length + 1
+  const timestamp = Date.now()
+  
+  // Generate input ports
+  const inputPorts = Array.from({ length: inputCount }, (_, index) => ({
+    id: `port_in_${timestamp}_${index + 1}`,
+    name: `input${index + 1}`,
+    type: 'input' as const,
+    dataType: dataTypes[Math.floor(Math.random() * dataTypes.length)],
+    required: index === 0 // First input is required, others are optional
+  }))
+  
+  // Generate output ports
+  const outputPorts = Array.from({ length: outputCount }, (_, index) => ({
+    id: `port_out_${timestamp}_${index + 1}`,
+    name: `output${index + 1}`,
+    type: 'output' as const,
+    dataType: dataTypes[Math.floor(Math.random() * dataTypes.length)]
+  }))
+  
+  // Calculate node height based on port count
+  const maxPorts = Math.max(inputCount, outputCount)
+  const baseHeight = 90
+  const portHeight = 20
+  const calculatedHeight = Math.max(baseHeight, baseHeight + (maxPorts - 2) * portHeight)
+  
+  return {
+    type: 'test',
+    title: `Test Node ${nodeNumber}`,
+    x: Math.random() * 600 + 50,
+    y: Math.random() * 400 + 50,
+    width: 140,
+    height: calculatedHeight,
+    ports: [...inputPorts, ...outputPorts],
+    properties: {
+      description: `Test node with ${inputCount} inputs and ${outputCount} outputs`,
+      version: '1.0.0',
+      inputCount,
+      outputCount
     }
   }
 }
@@ -311,6 +389,18 @@ function addSampleNode(): void {
   }
 }
 
+// Test node creation with selectable ports
+function addTestNode(): void {
+  if (!graphEditor.value) return
+  
+  const testNode = generateTestNode(testNodeInputs.value, testNodeOutputs.value)
+  const nodeId = graphEditor.value.addNode(testNode)
+  
+  if (nodeId) {
+    console.log(`Added test node with ${testNodeInputs.value} inputs and ${testNodeOutputs.value} outputs:`, nodeId)
+  }
+}
+
 function addSampleEdge(): void {
   if (!graphEditor.value || nodes.value.length < 2) return
   
@@ -427,16 +517,67 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.control-group h3 {
-  margin: 0 0 12px 0;
-  color: var(--text-primary);
-  font-size: 16px;
+.control-group {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
-.control-group {
+.control-group h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.control-group input[type="number"] {
+  width: 80px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  margin-left: 0.5rem;
+}
+
+.port-controls {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.port-control {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.port-control label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.port-input {
+  width: 70px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .btn {
