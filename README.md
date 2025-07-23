@@ -1,6 +1,6 @@
 # Primeflow
 
-A powerful, interactive visual node-based graph editor built with Vue 3 and TypeScript. Primeflow provides a complete solution for creating, editing, and managing node graphs with drag-and-drop functionality, real-time connections, and advanced features like undo/redo, theming, and minimap navigation.
+A powerful, interactive visual node-based graph editor built with Vue 3 and TypeScript. Primeflow provides a complete solution for creating, editing, and managing node graphs with drag-and-drop functionality, real-time connections, and advanced features like undo/redo, theming, and minimap navigation. 
 
 ## ✨ Features
 
