@@ -11,7 +11,7 @@ A powerful, interactive visual node-based graph editor built with Vue 3 and Type
 - **Selection System**: Single and multi-select support for nodes and edges
 - **Interactive Canvas**: Pan and zoom with mouse/touch gestures
 
-### Advanced Features
+### Advanced Features 
 - **Undo/Redo System**: Complete history tracking with 20-action stack limit
 - **Minimap Navigation**: Bird's-eye view with interactive viewport control
 - **Theme Support**: Light and dark themes with automatic persistence
